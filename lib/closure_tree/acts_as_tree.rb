@@ -212,7 +212,7 @@ module ClosureTree
         FROM #{quoted_hierarchy_table_name}
         WHERE ancestor_id = #{id}
       SQL
-      if result.present?
+      if result.present? && result.first.present?
         connection.execute <<-SQL
           DELETE FROM #{quoted_hierarchy_table_name}
           WHERE descendant_id IN (#{result.map(&:first).join(',')})
