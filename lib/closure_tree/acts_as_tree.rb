@@ -207,16 +207,23 @@ module ClosureTree
       # The crazy double-wrapped sub-subselect works around MySQL's limitation of subselects on the same table that is being mutated.
       # It shouldn't affect performance of postgresql.
       # See http://dev.mysql.com/doc/refman/5.0/en/subquery-errors.html
-      connection.execute <<-SQL
-        DELETE FROM #{quoted_hierarchy_table_name}
-        WHERE descendant_id IN (
-          SELECT DISTINCT descendant_id
-          FROM ( SELECT descendant_id
-            FROM #{quoted_hierarchy_table_name}
-            WHERE ancestor_id = #{id}
-          ) AS x )
-          OR descendant_id = #{id}
+      result = connection.execute <<-SQL
+        SELECT DISTINCT descendant_id
+        FROM #{quoted_hierarchy_table_name}
+        WHERE ancestor_id = #{id}
       SQL
+      if result.present?
+        connection.execute <<-SQL
+          DELETE FROM #{quoted_hierarchy_table_name}
+          WHERE descendant_id IN (#{result.map(&:first).join(',')})
+            OR descendant_id = #{id}
+        SQL
+      else
+        connection.execute <<-SQL
+          DELETE FROM #{quoted_hierarchy_table_name}
+          WHERE descendant_id = #{id}
+        SQL
+      end
     end
 
     def without_self(scope)
