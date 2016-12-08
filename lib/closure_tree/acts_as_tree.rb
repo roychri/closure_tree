@@ -56,13 +56,14 @@ module ClosureTree
         :association_foreign_key => "descendant_id",
         :order => "generations asc"
 
-      scope :roots, where(parent_column_name => nil)
+      scope :roots, -> { where(parent_column_name => nil) }
 
-      scope :leaves, where(" #{quoted_table_name}.#{primary_key} IN
+      scope :leaves, -> { where(" #{quoted_table_name}.#{primary_key} IN
         (SELECT ancestor_id
          FROM #{quoted_hierarchy_table_name}
          GROUP BY 1
          HAVING MAX(generations) = 0)")
+      }
     end
   end
 
