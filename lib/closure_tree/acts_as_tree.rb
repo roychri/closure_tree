@@ -186,7 +186,7 @@ module ClosureTree
       delete_hierarchy_references unless @was_new_record
       hierarchy_class.create!(:ancestor => self, :descendant => self, :generations => 0)
       unless root?
-        connection.execute <<-SQL
+        self.class.connection.execute <<-SQL
           INSERT INTO #{quoted_hierarchy_table_name}
             (ancestor_id, descendant_id, generations)
           SELECT x.ancestor_id, #{id}, x.generations + 1
@@ -208,19 +208,19 @@ module ClosureTree
       # The crazy double-wrapped sub-subselect works around MySQL's limitation of subselects on the same table that is being mutated.
       # It shouldn't affect performance of postgresql.
       # See http://dev.mysql.com/doc/refman/5.0/en/subquery-errors.html
-      result = connection.execute <<-SQL
+      result = self.class.connection.execute <<-SQL
         SELECT DISTINCT descendant_id
         FROM #{quoted_hierarchy_table_name}
         WHERE ancestor_id = #{id}
       SQL
       if result.present? && result.first.present?
-        connection.execute <<-SQL
+        self.class.connection.execute <<-SQL
           DELETE FROM #{quoted_hierarchy_table_name}
           WHERE descendant_id IN (#{result.map(&:first).join(',')})
             OR descendant_id = #{id}
         SQL
       else
-        connection.execute <<-SQL
+        self.class.connection.execute <<-SQL
           DELETE FROM #{quoted_hierarchy_table_name}
           WHERE descendant_id = #{id}
         SQL
@@ -303,11 +303,11 @@ module ClosureTree
     end
 
     def quoted_hierarchy_table_name
-      connection.quote_column_name hierarchy_table_name
+      self.class.connection.quote_column_name hierarchy_table_name
     end
 
     def quoted_parent_column_name
-      connection.quote_column_name parent_column_name
+      self.class.connection.quote_column_name parent_column_name
     end
 
     def ct_class
@@ -331,7 +331,7 @@ module ClosureTree
     end
 
     def quoted_table_name
-      connection.quote_column_name ct_table_name
+      self.class.connection.quote_column_name ct_table_name
     end
   end
 end
